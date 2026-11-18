@@ -42,6 +42,11 @@ export function createInput(canvas) {
     mouseY = ((event.clientY - rect.top) / rect.height) * 720;
   });
   canvas.addEventListener('mousedown', (event) => {
+    // Take the position from the press itself, not the last mousemove, so a
+    // click always lands where it was pressed.
+    const rect = canvas.getBoundingClientRect();
+    mouseX = ((event.clientX - rect.left) / rect.width) * 1280;
+    mouseY = ((event.clientY - rect.top) / rect.height) * 720;
     if (event.button === 0) {
       mouseDown = true;
       clicks.push({ x: mouseX, y: mouseY });

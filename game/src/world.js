@@ -45,6 +45,9 @@ export function createWorld(seed) {
       bustedT: 0,
       walkCycle: 0,
       moving: false,
+      speed: 0,
+      shirt: '#2ec4b6',
+      pants: '#2e3a46',
     },
     cars: [],
     peds: [],
@@ -58,6 +61,7 @@ export function createWorld(seed) {
     dialogue: null,
     shop: null,
     taxi: null,
+    storyIndex: 0,
     storyDone: false,
     stats: { earned: 0, fares: 0, carsStolen: 0 },
     over: null, // set when the player dies or is busted: { kind, timer }
@@ -298,6 +302,9 @@ function updateCamera(world, dt) {
   const k = Math.min(1, dt * 5.5);
   world.camera.x += (tx - world.camera.x) * k;
   world.camera.y += (ty - world.camera.y) * k;
+  // Keep the view inside the world, so the edges never show the void.
+  world.camera.x = clamp(world.camera.x, 640, world.city.width - 640);
+  world.camera.y = clamp(world.camera.y, 360, world.city.height - 360);
   world.camera.shake = Math.max(0, world.camera.shake - dt * 26);
 }
 

@@ -295,10 +295,22 @@ function updateTrafficCar(world, car, dt) {
   }
   car.honkCd -= dt;
   const desired = Math.atan2(ty - car.y, tx - car.x);
-  const steer = clamp(angleDelta(car.angle, desired) * 2.4, -1, 1);
+  let steer = clamp(angleDelta(car.angle, desired) * 2.4, -1, 1);
   let throttle = 0;
   if (car.speed < targetSpeed - 6) throttle = 1;
   else if (car.speed > targetSpeed + 6) throttle = -0.7;
+  // Wedged against a building or a bumpers-locked neighbour: reverse out.
+  if (Math.abs(car.speed) < 12 && targetSpeed > 60) car.wedgeT = (car.wedgeT ?? 0) + dt;
+  else car.wedgeT = 0;
+  if (car.wedgeT > 3) {
+    car.unstickT = 0.7;
+    car.wedgeT = 0;
+  }
+  if ((car.unstickT ?? 0) > 0) {
+    car.unstickT -= dt;
+    throttle = -1;
+    steer = -steer;
+  }
   stepCarPhysics(world, car, { throttle, steer, handbrake: false }, dt);
 }
 
@@ -324,10 +336,22 @@ function updatePoliceCar(world, car, dt) {
   else if (!p.car && d < 90) targetSpeed = spec.topSpeed * 0.3; // circle a foot suspect, don't just mow them
   else if (d < 46) targetSpeed = Math.abs(p.car ? p.car.speed : 0) * 0.8;
   const desired = Math.atan2(ty - car.y, tx - car.x);
-  const steer = clamp(angleDelta(car.angle, desired) * 2.6, -1, 1);
+  let steer = clamp(angleDelta(car.angle, desired) * 2.6, -1, 1);
   let throttle = 0;
   if (car.speed < targetSpeed - 6) throttle = 1;
   else if (car.speed > targetSpeed + 6) throttle = -0.8;
+  // Wedged on a corner? Back out and come at it again, like a driver would.
+  if (Math.abs(car.speed) < 14 && targetSpeed > 90 && !world.over) car.stuckT += dt;
+  else car.stuckT = 0;
+  if (car.stuckT > 1.6) {
+    car.unstickT = 0.75;
+    car.stuckT = 0;
+  }
+  if ((car.unstickT ?? 0) > 0) {
+    car.unstickT -= dt;
+    throttle = -1;
+    steer = -steer;
+  }
   stepCarPhysics(world, car, { throttle, steer, handbrake: false }, dt);
 
   // Shooting from the car at three stars and up.

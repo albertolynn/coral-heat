@@ -202,6 +202,7 @@ function updateOnFoot(world, input, dt) {
   const speed = sprint ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
   const moving = axis.x !== 0 || axis.y !== 0;
   p.moving = moving;
+  p.speed = moving ? speed : 0;
   if (moving) {
     const len = Math.sqrt(axis.x * axis.x + axis.y * axis.y);
     const nx = p.x + (axis.x / len) * speed * dt;
