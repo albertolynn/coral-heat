@@ -3,17 +3,39 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
+<title>Coral Heat — a Coral Bay crime story</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
-  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1420; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
   #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #errbox { position: fixed; left: 8px; bottom: 8px; max-width: 70%; padding: 6px 10px; border-radius: 6px;
+    background: rgba(120, 10, 10, 0.92); color: #ffe9e9; font: 12px/1.5 ui-monospace, monospace;
+    white-space: pre-wrap; display: none; z-index: 10; }
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
+<canvas id="game" aria-label="Coral Heat: a top-down open-world crime game. Walk and drive around Coral Bay, take missions, outrun the police."></canvas>
 <p id="status" role="status" aria-live="polite"></p>
+<div id="errbox" aria-hidden="true"></div>
+<script>
+  // Any runtime error is surfaced on the page (and in the title) so a headless
+  // check can see it in the DOM instead of a silent black screen.
+  window.__errors = [];
+  window.addEventListener('error', function (event) {
+    var message = 'ERROR: ' + (event.message || 'unknown error');
+    window.__errors.push(message);
+    document.title = message;
+    var box = document.getElementById('errbox');
+    if (box) { box.style.display = 'block'; box.textContent = window.__errors.join('\n'); }
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var message = 'ERROR: unhandled rejection: ' + (event.reason && event.reason.message ? event.reason.message : String(event.reason));
+    window.__errors.push(message);
+    document.title = message;
+    var box = document.getElementById('errbox');
+    if (box) { box.style.display = 'block'; box.textContent = window.__errors.join('\n'); }
+  });
+</script>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

@@ -1,53 +1,82 @@
-// Keyboard and pointer input. Held keys give a steering direction; one-shot presses (start or
-// restart, pause) are queued as bit flags and taken once by the loop, so a press between two
-// frames is never lost and never counted twice.
+// Keyboard and mouse state: held keys as a set, one-frame action edges for
+// the keys that trigger things (interact, pause, confirm), and the mouse
+// position in logical view pixels. Menus read clicks through takeClicks();
+// the game reads held keys and the mouse directly.
 
-export const ACTION_CONFIRM = 1;
-export const ACTION_PAUSE = 2;
+export const ACT_INTERACT = 1;
+export const ACT_PAUSE = 2;
+export const ACT_CONFIRM = 4;
 
-const LEFT = new Set(['ArrowLeft', 'KeyA']);
-const RIGHT = new Set(['ArrowRight', 'KeyD']);
-const CONFIRM = new Set(['Space', 'Enter']);
-const PAUSE = new Set(['KeyP', 'Escape']);
+const KEY_ACTIONS = {
+  KeyF: ACT_INTERACT,
+  KeyE: ACT_INTERACT,
+  Escape: ACT_PAUSE,
+  KeyP: ACT_PAUSE,
+  Enter: ACT_CONFIRM,
+};
 
-export function createInput(target) {
-  let left = false;
-  let right = false;
+export function createInput(canvas) {
+  const held = new Set();
   let actions = 0;
+  let mouseX = 640;
+  let mouseY = 360;
+  let mouseDown = false;
+  let clicks = [];
 
   window.addEventListener('keydown', (event) => {
-    if (LEFT.has(event.code)) left = true;
-    else if (RIGHT.has(event.code)) right = true;
-    else if (CONFIRM.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_CONFIRM;
-    } else if (PAUSE.has(event.code)) {
-      if (!event.repeat) actions |= ACTION_PAUSE;
-    } else return;
-    event.preventDefault();
+    if (!event.repeat) {
+      held.add(event.code);
+      const action = KEY_ACTIONS[event.code];
+      if (action) actions |= action;
+    }
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) event.preventDefault();
   });
-  window.addEventListener('keyup', (event) => {
-    if (LEFT.has(event.code)) left = false;
-    else if (RIGHT.has(event.code)) right = false;
-  });
-  // A key released while the tab is hidden never sends keyup: let go of everything on blur.
+  window.addEventListener('keyup', (event) => held.delete(event.code));
   window.addEventListener('blur', () => {
-    left = false;
-    right = false;
+    held.clear();
+    mouseDown = false;
   });
-  target.addEventListener('pointerdown', () => {
-    actions |= ACTION_CONFIRM;
+  canvas.addEventListener('mousemove', (event) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = ((event.clientX - rect.left) / rect.width) * 1280;
+    mouseY = ((event.clientY - rect.top) / rect.height) * 720;
   });
+  canvas.addEventListener('mousedown', (event) => {
+    if (event.button === 0) {
+      mouseDown = true;
+      clicks.push({ x: mouseX, y: mouseY });
+    }
+  });
+  window.addEventListener('mouseup', (event) => {
+    if (event.button === 0) mouseDown = false;
+  });
+  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
   return {
-    /** -1 for left, 1 for right, 0 for neither or both. */
-    direction() {
-      return (right ? 1 : 0) - (left ? 1 : 0);
+    /** Is a key (by KeyboardEvent.code) currently held? */
+    down(code) {
+      return held.has(code);
     },
-    /** The one-shot presses since the last call, as ACTION_* flags. */
+    /** The movement axes from WASD and the arrow keys: -1, 0 or 1 each. */
+    moveAxis() {
+      const x = (held.has('KeyD') || held.has('ArrowRight') ? 1 : 0) - (held.has('KeyA') || held.has('ArrowLeft') ? 1 : 0);
+      const y = (held.has('KeyS') || held.has('ArrowDown') ? 1 : 0) - (held.has('KeyW') || held.has('ArrowUp') ? 1 : 0);
+      return { x, y };
+    },
+    /** Read and clear the one-frame action edges. */
     takeActions() {
       const taken = actions;
       actions = 0;
       return taken;
+    },
+    /** Read and clear the mouse clicks since the last call. */
+    takeClicks() {
+      const taken = clicks;
+      clicks = [];
+      return taken;
+    },
+    mouse() {
+      return { x: mouseX, y: mouseY, down: mouseDown };
     },
   };
 }
