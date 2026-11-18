@@ -1,0 +1,3 @@
+# The hand-in directory main.ts writes; rebuilt from game/ and screenshots/
+# on every run, so it is never committed.
+out/
